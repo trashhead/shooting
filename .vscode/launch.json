@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Server (bun --hot)",
+      "program": "${workspaceFolder}/server/index.ts",
+      "args": ["--hot"],
+      "cwd": "${workspaceFolder}",
+      "env": { "PORT": "3000" },
+      "stopOnEntry": false,
+      "watchMode": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Server (production mode)",
+      "program": "${workspaceFolder}/server/index.ts",
+      "cwd": "${workspaceFolder}",
+      "env": { "PORT": "3000", "NODE_ENV": "production" },
+      "stopOnEntry": false,
+      "watchMode": false
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Chrome (localhost:3000)",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/client"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Server + Chrome",
+      "configurations": ["Server (bun --hot)", "Chrome (localhost:3000)"],
+      "stopAll": true
+    }
+  ]
+}

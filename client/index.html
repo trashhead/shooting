@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>shooting</title>
+    <link rel="stylesheet" href="./hud/hud.css" />
+  </head>
+  <body>
+    <div id="hud">
+      <div id="damage"></div>
+
+      <div id="crosshair">
+        <i class="tick t-up"></i><i class="tick t-down"></i><i class="tick t-left"></i><i class="tick t-right"></i>
+        <i class="dot"></i>
+      </div>
+
+      <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
+
+      <div id="killfeed"></div>
+
+      <div id="death">
+        <h2>YOU DIED</h2>
+        <div class="by">Killed by <span id="deathKiller"></span></div>
+        <div class="respawn">Click to respawn</div>
+      </div>
+
+      <div id="status" class="panel">
+        <span id="statusDot" class="dot-status"></span>
+        <span id="statusText">offline</span>
+        <span class="sep"></span>
+        <span id="playerCount">1</span><span class="muted">&nbsp;players</span>
+      </div>
+
+      <div id="health" class="panel">
+        <div class="label">Health</div>
+        <div class="row">
+          <div id="healthValue" class="big">100</div>
+          <div id="healthTrack"><div id="healthFill"></div><div id="healthGhost"></div></div>
+        </div>
+      </div>
+
+      <div id="weapon" class="panel">
+        <div class="label">Weapon</div>
+        <div class="row">
+          <div id="weaponName" class="big name">Rail Gun</div>
+        </div>
+        <div id="chargeTrack"><div id="chargeFill"></div></div>
+      </div>
+
+      <div id="tabHint">hold <kbd>Tab</kbd> for players</div>
+
+      <div id="scoreboard" class="panel">
+        <div class="label">Players</div>
+        <ul id="scoreList"></ul>
+      </div>
+    </div>
+
+    <div id="overlay">
+      <div class="card">
+        <h1>SHOOTING</h1>
+        <p class="cta">Click to play</p>
+        <div class="keys">
+          <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</span>
+          <span><kbd>Space</kbd> jump</span>
+          <span><kbd>Shift</kbd> sneak</span>
+          <span><kbd>Mouse</kbd> look &amp; shoot</span>
+          <span><kbd>Tab</kbd> players</span>
+          <span><kbd>Esc</kbd> release mouse</span>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
