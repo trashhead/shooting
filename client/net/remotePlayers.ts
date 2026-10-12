@@ -5,17 +5,23 @@ import { spawnProjectile } from '../fx/projectile';
 import { playShootSound } from '../fx/audio';
 import { EYE_HEIGHT, PLAYER_RADIUS } from '../../shared/constants';
 import type { PlayerState } from '../../shared/protocol';
+import { loadSoldier, SoldierAvatar } from './soldier';
 
-// Other players, drawn as a capsule body with a head that pitches and a
-// little "gun" box. Snapshots arrive at ~20 Hz, so each avatar eases toward
-// its latest target pose every frame instead of teleporting.
+// Other players, drawn as an animated soldier (soldier.ts). Until that has
+// loaded - or if it fails to - they are a capsule body with a head that pitches
+// and a little "gun" box. Snapshots arrive at ~20 Hz, so each avatar eases
+// toward its latest target pose every frame instead of teleporting.
 type Remote = {
   group: THREE.Group;
   body: THREE.Mesh;
   head: THREE.Group;
   arm: THREE.Group;
   target: PlayerState;
+  avatar: SoldierAvatar | null;
 };
+
+// Start fetching the soldier now, so it is ready by the time anyone appears.
+loadSoldier().catch(() => {});
 
 const remotes = new Map<number, Remote>();
 // Latest score for everyone (ourselves included), straight from the snapshots.
@@ -79,7 +85,20 @@ function createRemote(state: PlayerState): Remote {
   group.position.set(state.x, state.y, state.z);
   group.rotation.y = state.yaw;
   scene.add(group);
-  return { group, body, head, arm, target: state };
+  const remote: Remote = { group, body, head, arm, target: state, avatar: null };
+
+  loadSoldier()
+    .then((assets) => {
+      if (remotes.get(state.id) !== remote) return; // left while loading
+      remote.avatar = new SoldierAvatar(assets, colorFor(state.id));
+      group.add(remote.avatar.object);
+      // The placeholder is replaced, except for the body: it stays as the
+      // invisible hit volume the bolts stop on.
+      head.visible = arm.visible = false;
+      body.visible = false;
+    })
+    .catch((err) => console.error('Failed to load soldier', err));
+  return remote;
 }
 
 const shotOrigin = new THREE.Vector3();
@@ -116,9 +135,15 @@ onMessage((msg) => {
   }
 });
 
+const SNAP_DISTANCE = 8; // further than this is a respawn, not a walk
+
 export function updateRemotePlayers(delta: number) {
   const k = 1 - Math.exp(-delta * 18); // frame-rate independent smoothing
-  for (const { group, head, arm, target } of remotes.values()) {
+  for (const { group, head, arm, target, avatar } of remotes.values()) {
+    if (Math.hypot(target.x - group.position.x, target.y - group.position.y, target.z - group.position.z) > SNAP_DISTANCE) {
+      group.position.set(target.x, target.y, target.z); // a teleport, not motion
+    }
+    const { x, y, z } = group.position;
     group.position.x += (target.x - group.position.x) * k;
     group.position.y += (target.y - group.position.y) * k;
     group.position.z += (target.z - group.position.z) * k;
@@ -127,5 +152,14 @@ export function updateRemotePlayers(delta: number) {
     group.rotation.y += (target.yaw - group.rotation.y) * k;
     head.rotation.x += (target.pitch - head.rotation.x) * k;
     arm.rotation.x = head.rotation.x;
+
+    if (avatar && delta > 0) {
+      // World velocity -> relative to where the player faces (-Z is forward).
+      const vx = (group.position.x - x) / delta;
+      const vz = (group.position.z - z) / delta;
+      const cos = Math.cos(group.rotation.y);
+      const sin = Math.sin(group.rotation.y);
+      avatar.update(delta, -(vx * sin + vz * cos), -(vx * cos - vz * sin), (group.position.y - y) / delta, head.rotation.x);
+    }
   }
 }

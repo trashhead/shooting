@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
 import { camera, renderer } from '../core/scene';
 import { controls } from './movement';
 import { boxes, floor } from '../world/world';
@@ -8,9 +7,10 @@ import { playShootSound } from '../fx/audio';
 import { send } from '../net/socket';
 import { remoteBodies } from '../net/remotePlayers';
 import { isAlive } from './status';
+import { loadWeaponModel } from './weaponModel';
 
-// Held weapon: a placeholder box until the sci-fi model (Collada, no rig,
-// own PBR textures) finishes loading.
+// Held weapon: a placeholder box until the sci-fi model (weaponModel.ts)
+// finishes loading.
 const WEAPON_REST_Z = -0.62;
 const weaponGroup = new THREE.Group();
 weaponGroup.position.set(0.4, -0.32, WEAPON_REST_Z);
@@ -27,48 +27,10 @@ weaponGroup.add(placeholder);
 // weapon mesh and of the recoil kick.
 const MUZZLE_LOCAL_OFFSET = new THREE.Vector3(0.4, -0.32, -1.05);
 
-const textureLoader = new THREE.TextureLoader();
-new ColladaLoader()
-  .loadAsync('/assets/weapon/model.dae')
-  .then((collada) => {
-    const model = collada.scene;
-    // The source barrel faces backward. Rotate first, then measure and
-    // recenter: an offset computed before the rotation would end up rotated too.
-    model.rotation.y = Math.PI;
-    model.updateMatrixWorld(true);
-    const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
-    model.scale.setScalar(0.85 / Math.max(size.x, size.y, size.z));
-    model.updateMatrixWorld(true);
-    const center = new THREE.Box3().setFromObject(model).getCenter(new THREE.Vector3());
-    model.position.sub(center);
-
-    const material = new THREE.MeshStandardMaterial({
-      map: textureLoader.load('/assets/weapon/albedo.jpg'),
-      normalMap: textureLoader.load('/assets/weapon/normal.png'),
-      metalnessMap: textureLoader.load('/assets/weapon/metallic.jpg'),
-      roughnessMap: textureLoader.load('/assets/weapon/roughness.jpg'),
-      aoMap: textureLoader.load('/assets/weapon/ao.jpg'),
-      emissiveMap: textureLoader.load('/assets/weapon/emissive.jpg'),
-      emissive: new THREE.Color(0x2299ff),
-      emissiveIntensity: 1.5,
-      metalness: 1,
-      roughness: 1,
-    });
-    material.map!.colorSpace = THREE.SRGBColorSpace;
-    material.emissiveMap!.colorSpace = THREE.SRGBColorSpace;
-
-    model.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.material = material;
-        // aoMap reads the uv1 set; the model only has one.
-        if (child.geometry.attributes.uv && !child.geometry.attributes.uv1) {
-          child.geometry.setAttribute('uv1', child.geometry.attributes.uv);
-        }
-      }
-    });
-
+loadWeaponModel()
+  .then((model) => {
     weaponGroup.remove(placeholder);
-    weaponGroup.add(model);
+    weaponGroup.add(model.clone());
   })
   .catch((err) => console.error('Failed to load weapon model', err));
 
