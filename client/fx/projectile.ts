@@ -103,7 +103,8 @@ const projectiles: Projectile[] = [];
 // that live in the scene permanently. Adding or removing a light changes the
 // light count three.js compiles every lit material for, so doing that per shot
 // recompiles all shaders (a visible freeze), and each extra light also costs
-// every pixel. Bolts beyond the pool simply go without a light.
+// every pixel. Only the newest bolts get a light: a new one takes the light
+// of the oldest bolt that still has one.
 const LIGHT_POOL_SIZE = 4;
 const BOLT_LIGHT_INTENSITY = 4;
 const freeLights: THREE.PointLight[] = [];
@@ -118,6 +119,19 @@ function releaseLight(light: THREE.PointLight | null) {
   light.intensity = 0;
   freeLights.push(light);
 }
+
+// `projectiles` is in spawn order, so the first one with a light is the oldest.
+function takeLightFromOldest(): THREE.PointLight | null {
+  for (const p of projectiles) {
+    if (p.light) {
+      const light = p.light;
+      p.light = null;
+      return light;
+    }
+  }
+  return null;
+}
+
 const UP_AXIS = new THREE.Vector3(0, 1, 0);
 
 export function spawnProjectile(
@@ -134,7 +148,7 @@ export function spawnProjectile(
   group.frustumCulled = false;
   scene.add(group);
 
-  const light = freeLights.pop() ?? null;
+  const light = freeLights.pop() ?? takeLightFromOldest();
   if (light) {
     light.intensity = BOLT_LIGHT_INTENSITY;
     light.position.copy(origin);
