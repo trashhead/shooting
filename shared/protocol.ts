@@ -27,7 +27,9 @@ export type ClientMessage =
   // the shooter saw it fly. The server flies its own copy at BOLT_SPEED and
   // applies damage only when that reaches someone.
   | { t: 'shoot'; origin: Vec3; dir: Vec3; dist: number }
-  | { t: 'respawn' };
+  | { t: 'respawn' }
+  // Ask the server to add a computer-controlled player (it caps how many).
+  | { t: 'addBot' };
 
 export type ServerMessage =
   | { t: 'welcome'; id: number; spawn: Spawn; health: number }

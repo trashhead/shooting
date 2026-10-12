@@ -5,6 +5,7 @@ import { playerId, send } from './net/socket';
 import { updateRemotePlayers } from './net/remotePlayers';
 import { updateMovement } from './player/movement';
 import './player/life';
+import './player/bots';
 import { updateWeapon } from './player/weapon';
 import { updateProjectiles } from './fx/projectile';
 import { updateHud } from './hud/hud';

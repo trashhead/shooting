@@ -1,5 +1,6 @@
 import { join, resolve } from 'node:path';
 import index from '../client/index.html';
+import * as bots from './bot';
 import * as game from './game';
 import { decode, encode, type ClientMessage } from '../shared/protocol';
 
@@ -82,6 +83,10 @@ const server = Bun.serve<Client>({
           break;
         }
 
+        case 'addBot':
+          if (bots.canAddBot()) bots.addBot(nextId++);
+          break;
+
         case 'respawn': {
           const result = game.respawn(id);
           if (result) ws.send(encode({ t: 'respawn', ...result }));
@@ -104,6 +109,13 @@ const tick = () => {
   const now = performance.now();
   const dt = Math.min((now - lastTick) / 1000, 0.1);
   lastTick = now;
+
+  // Bots only make sense with someone to play against.
+  if (sockets.size === 0) bots.removeAllBots();
+  bots.updateBots(dt, (id, origin, dir, dist) => {
+    server.publish(ROOM, encode({ t: 'shot', id, origin, dir, dist }));
+    game.fire(id, origin, dir);
+  });
 
   for (const hit of game.step(dt)) {
     sockets.get(hit.killerId)?.send(encode({ t: 'hitmarker', kill: hit.killed }));

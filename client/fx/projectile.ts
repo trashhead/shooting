@@ -88,7 +88,7 @@ function spawnSparkle(position: THREE.Vector3) {
 
 interface Projectile {
   group: THREE.Group;
-  light: THREE.PointLight;
+  light: THREE.PointLight | null;
   origin: THREE.Vector3;
   direction: THREE.Vector3;
   distanceTraveled: number;
@@ -98,6 +98,26 @@ interface Projectile {
 }
 
 const projectiles: Projectile[] = [];
+
+// The glow each bolt casts on the world comes from a small fixed pool of lights
+// that live in the scene permanently. Adding or removing a light changes the
+// light count three.js compiles every lit material for, so doing that per shot
+// recompiles all shaders (a visible freeze), and each extra light also costs
+// every pixel. Bolts beyond the pool simply go without a light.
+const LIGHT_POOL_SIZE = 4;
+const BOLT_LIGHT_INTENSITY = 4;
+const freeLights: THREE.PointLight[] = [];
+for (let i = 0; i < LIGHT_POOL_SIZE; i++) {
+  const light = new THREE.PointLight(0x4db2ff, 0, 6, 2);
+  scene.add(light);
+  freeLights.push(light);
+}
+
+function releaseLight(light: THREE.PointLight | null) {
+  if (!light) return;
+  light.intensity = 0;
+  freeLights.push(light);
+}
 const UP_AXIS = new THREE.Vector3(0, 1, 0);
 
 export function spawnProjectile(
@@ -114,8 +134,11 @@ export function spawnProjectile(
   group.frustumCulled = false;
   scene.add(group);
 
-  const light = new THREE.PointLight(0x4db2ff, 4, 6, 2);
-  scene.add(light);
+  const light = freeLights.pop() ?? null;
+  if (light) {
+    light.intensity = BOLT_LIGHT_INTENSITY;
+    light.position.copy(origin);
+  }
 
   projectiles.push({
     group,
@@ -139,7 +162,8 @@ export function updateProjectiles(delta: number) {
 
     if (p.distanceTraveled >= p.targetDistance) {
       p.onArrive?.();
-      scene.remove(p.group, p.light);
+      scene.remove(p.group);
+      releaseLight(p.light);
       projectiles.splice(i, 1);
       continue;
     }
@@ -148,7 +172,7 @@ export function updateProjectiles(delta: number) {
     // The mesh's own length trails behind the tip, so the leading edge lands
     // exactly on the impact point at the same moment onArrive fires.
     p.group.position.copy(tipPosition).addScaledVector(p.direction, -GLOW_LENGTH / 2);
-    p.light.position.copy(tipPosition);
+    p.light?.position.copy(tipPosition);
 
     // A gentle shimmer - the outer glow pulses in scale over time.
     const pulse = 1 + Math.sin(p.age * 40) * 0.12;
