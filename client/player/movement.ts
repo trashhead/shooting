@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { camera, renderer } from '../core/scene';
-import { clampToFloor, resolveBoxCollisions } from '../world/collision';
+import { clampToFloor, groundHeight, resolveSolids } from '../../shared/collision';
 import { audioCtx } from '../fx/audio';
 import { isAlive } from './status';
 import { DAMPING, EYE_HEIGHT, GRAVITY, JUMP_SPEED, MOVE_SPEED, PLAYER_RADIUS, SNEAK_SPEED } from '../../shared/constants';
@@ -75,14 +75,18 @@ export function updateMovement(delta: number) {
   controls.moveRight(-velocity.x * delta);
   controls.moveForward(-velocity.z * delta);
 
+  const feetY = camera.position.y - EYE_HEIGHT;
   clampToFloor(camera.position, PLAYER_RADIUS);
-  resolveBoxCollisions(camera.position, PLAYER_RADIUS);
+  resolveSolids(camera.position, PLAYER_RADIUS, feetY);
 
+  // Fall onto the highest surface under us that our feet were above. Only
+  // standing on something allows a jump, so walking off a ledge does not.
   velocityY -= GRAVITY * delta;
   camera.position.y += velocityY * delta;
-  if (camera.position.y <= EYE_HEIGHT) {
-    camera.position.y = EYE_HEIGHT;
-    velocityY = 0;
-    canJump = true;
+  const ground = groundHeight(camera.position, PLAYER_RADIUS, feetY);
+  if (camera.position.y - EYE_HEIGHT <= ground) {
+    camera.position.y = ground + EYE_HEIGHT;
+    if (velocityY < 0) velocityY = 0;
   }
+  canJump = camera.position.y - EYE_HEIGHT <= ground + 1e-3;
 }

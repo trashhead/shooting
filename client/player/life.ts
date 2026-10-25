@@ -3,7 +3,8 @@ import { onMessage, playerId, send } from '../net/socket';
 import { addKillFeedEntry, hideDeath, hitMarker, setHealth, setRespawnReady, showDeath } from '../hud/hud';
 import { respawnAt } from './movement';
 import { isAlive, setAlive } from './status';
-import { RESPAWN_DELAY_MS } from '../../shared/constants';
+import { EYE_HEIGHT, PLAYER_RADIUS, RESPAWN_DELAY_MS } from '../../shared/constants';
+import { groundHeight } from '../../shared/collision';
 
 // Life cycle of the local player, driven entirely by what the server says:
 // spawn, take damage, die, respawn.
@@ -12,7 +13,8 @@ let canRespawn = false;
 function die(killerId: number) {
   setAlive(false);
   canRespawn = false;
-  camera.position.y = 0.4; // drop to the ground where we fell
+  // drop to the ground (or platform) where we fell
+  camera.position.y = groundHeight(camera.position, PLAYER_RADIUS, camera.position.y - EYE_HEIGHT) + 0.4;
   showDeath(killerId);
   setTimeout(() => {
     if (isAlive()) return; // already respawned somehow

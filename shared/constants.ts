@@ -8,8 +8,7 @@ export const DAMPING = 10;
 export const GRAVITY = 30;
 export const JUMP_SPEED = 10;
 
-export const FLOOR_SIZE = 200;
-export const BOX_HALF_EXTENT = 1; // boxes are 2x2x2
+export const BOX_HALF_EXTENT = 1; // the field map's boxes are 2x2x2
 
 // Combat
 export const MAX_HEALTH = 100;

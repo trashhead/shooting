@@ -1,5 +1,4 @@
-import { BOX_HALF_EXTENT } from '../shared/constants';
-import { BOX_POSITIONS } from '../shared/world';
+import { MAP } from '../shared/world';
 
 // Ray tests for server-side hit detection. A ray is origin `o` + t * unit
 // direction `d`; each function returns the distance t of the first hit, or
@@ -44,18 +43,13 @@ export function rayBox(o: V, d: V, min: V, max: V): number | null {
   return tMin;
 }
 
-// Distance to the nearest thing that blocks shots (the boxes and the floor),
+// Distance to the nearest thing that blocks shots (the solids and the floor),
 // or `maxDist` if the ray reaches that far unobstructed.
 export function distanceToWorld(o: V, d: V, maxDist: number): number {
   let nearest = maxDist;
   if (d[1] < 0) nearest = Math.min(nearest, -o[1] / d[1]); // floor at y = 0
-  for (const b of BOX_POSITIONS) {
-    const t = rayBox(
-      o,
-      d,
-      [b.x - BOX_HALF_EXTENT, 0, b.z - BOX_HALF_EXTENT],
-      [b.x + BOX_HALF_EXTENT, BOX_HALF_EXTENT * 2, b.z + BOX_HALF_EXTENT]
-    );
+  for (const s of MAP.solids) {
+    const t = rayBox(o, d, [s.x - s.hx, s.y0, s.z - s.hz], [s.x + s.hx, s.y1, s.z + s.hz]);
     if (t !== null && t < nearest) nearest = t;
   }
   return nearest;

@@ -1,6 +1,7 @@
-import { BOX_HALF_EXTENT, EYE_HEIGHT, FLOOR_SIZE, PLAYER_RADIUS, SHOT_RANGE } from '../shared/constants';
+import { EYE_HEIGHT, PLAYER_RADIUS, SHOT_RANGE } from '../shared/constants';
 import type { Vec3 } from '../shared/protocol';
-import { BOX_POSITIONS } from '../shared/world';
+import { clampToFloor, nearSolid, resolveSolids } from '../shared/collision';
+import { MAP } from '../shared/world';
 import { distanceToWorld } from './combat';
 import * as game from './game';
 
@@ -74,46 +75,21 @@ const clamp = (x: number, lo: number, hi: number) => Math.min(Math.max(x, lo), h
 const turnToward = (current: number, desired: number, maxStep: number) =>
   current + clamp(wrap(desired - current), -maxStep, maxStep);
 
-function nearBox(x: number, z: number, radius: number) {
-  return BOX_POSITIONS.some((b) => Math.abs(x - b.x) < BOX_HALF_EXTENT + radius && Math.abs(z - b.z) < BOX_HALF_EXTENT + radius);
-}
-
 function randomGoal() {
-  const half = FLOOR_SIZE / 2 - 8;
+  const half = MAP.size / 2 - 8;
   for (let i = 0; i < 20; i++) {
     const x = (Math.random() * 2 - 1) * half;
     const z = (Math.random() * 2 - 1) * half;
-    if (!nearBox(x, z, 2)) return { x, z };
+    if (!nearSolid(x, z, 2)) return { x, z };
   }
   return { x: 0, z: 0 };
 }
 
-// Slide out of any box the bot walked into and keep it on the floor (the same
-// rules as the client's movement, see client/world/collision.ts).
+// Bots stay on the floor, so every solid is an obstacle to them (they do not
+// climb onto platforms).
 function collide(pos: { x: number; z: number }) {
-  for (const b of BOX_POSITIONS) {
-    const dx = pos.x - b.x;
-    const dz = pos.z - b.z;
-    if (Math.abs(dx) < BOX_HALF_EXTENT && Math.abs(dz) < BOX_HALF_EXTENT) {
-      const pushX = BOX_HALF_EXTENT + PLAYER_RADIUS - Math.abs(dx);
-      const pushZ = BOX_HALF_EXTENT + PLAYER_RADIUS - Math.abs(dz);
-      if (pushX < pushZ) pos.x = b.x + Math.sign(dx || 1) * (BOX_HALF_EXTENT + PLAYER_RADIUS);
-      else pos.z = b.z + Math.sign(dz || 1) * (BOX_HALF_EXTENT + PLAYER_RADIUS);
-      continue;
-    }
-    const diffX = dx - clamp(dx, -BOX_HALF_EXTENT, BOX_HALF_EXTENT);
-    const diffZ = dz - clamp(dz, -BOX_HALF_EXTENT, BOX_HALF_EXTENT);
-    const distSq = diffX * diffX + diffZ * diffZ;
-    if (distSq < PLAYER_RADIUS * PLAYER_RADIUS && distSq > 1e-9) {
-      const dist = Math.sqrt(distSq);
-      const push = (PLAYER_RADIUS - dist) / dist;
-      pos.x += diffX * push;
-      pos.z += diffZ * push;
-    }
-  }
-  const limit = FLOOR_SIZE / 2 - PLAYER_RADIUS;
-  pos.x = clamp(pos.x, -limit, limit);
-  pos.z = clamp(pos.z, -limit, limit);
+  resolveSolids(pos, PLAYER_RADIUS, 0);
+  clampToFloor(pos, PLAYER_RADIUS);
 }
 
 // How a bot's shot gets out into the world: announced to everyone, then flown

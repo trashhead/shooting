@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { scene } from '../core/scene';
-import { BOX_HALF_EXTENT, FLOOR_SIZE } from '../../shared/constants';
-import { BOX_POSITIONS } from '../../shared/world';
+import { MAP } from '../../shared/world';
+
+const FLOOR_SIZE = MAP.size;
 
 // Lighting
 scene.add(new THREE.AmbientLight(0xffffff, 0.5));
@@ -45,23 +46,48 @@ function createGrassTexture(): THREE.CanvasTexture {
   return texture;
 }
 
+// Floor for the arena: grey concrete slabs with seams, one tile per 8 units.
+function createConcreteTexture(): THREE.CanvasTexture {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#8a8f98';
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < 3000; i++) {
+    ctx.fillStyle = Math.random() < 0.5 ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+    ctx.fillRect(Math.random() * size, Math.random() * size, 2, 2);
+  }
+  ctx.strokeStyle = 'rgba(40,44,52,0.7)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(0, 0, size, size);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(FLOOR_SIZE / 8, FLOOR_SIZE / 8);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 export const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE),
-  new THREE.MeshStandardMaterial({ map: createGrassTexture(), roughness: 1 })
+  new THREE.MeshStandardMaterial({ map: MAP.floor === 'grass' ? createGrassTexture() : createConcreteTexture(), roughness: 1 })
 );
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 scene.add(floor);
 
-// Boxes. The layout is seeded and shared (shared/world.ts) so the server
-// knows where they are too, e.g. to keep spawns out of them.
+// Solids (boxes, walls, platforms). The layout is shared (shared/world.ts) so
+// the server knows where they are too, e.g. to stop bolts and keep spawns clear.
 export const boxes: THREE.Mesh[] = [];
-const boxColors = [0xcc4444, 0x4444cc, 0xcccc44, 0x44cccc, 0xcc44cc];
-const boxGeometry = new THREE.BoxGeometry(BOX_HALF_EXTENT * 2, BOX_HALF_EXTENT * 2, BOX_HALF_EXTENT * 2);
 
-BOX_POSITIONS.forEach(({ x, z }, i) => {
-  const box = new THREE.Mesh(boxGeometry, new THREE.MeshStandardMaterial({ color: boxColors[i % boxColors.length] }));
-  box.position.set(x, BOX_HALF_EXTENT, z);
+MAP.solids.forEach((s, i) => {
+  const height = s.y1 - s.y0;
+  const box = new THREE.Mesh(
+    new THREE.BoxGeometry(s.hx * 2, height, s.hz * 2),
+    new THREE.MeshStandardMaterial({ color: MAP.solidColors[i % MAP.solidColors.length] })
+  );
+  box.position.set(s.x, s.y0 + height / 2, s.z);
   box.castShadow = true;
   box.receiveShadow = true;
   scene.add(box);
