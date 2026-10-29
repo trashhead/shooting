@@ -37,10 +37,10 @@ onMessage((msg) => {
       setHealth(msg.health);
       break;
     case 'hitmarker':
-      hitMarker(msg.kill);
+      hitMarker(msg.kill, msg.head);
       break;
     case 'kill':
-      addKillFeedEntry(msg.killer, msg.victim);
+      addKillFeedEntry(msg.killer, msg.victim, msg.head);
       if (msg.victim === playerId) die(msg.killer);
       break;
   }

@@ -9,6 +9,8 @@ import { BOLT_SPEED } from '../../shared/constants';
 // over a short, real duration instead of registering the hit immediately.
 const PROJECTILE_SPEED = BOLT_SPEED; // units/sec - crosses a ~30-unit room in ~0.23s
 
+const TRACER_MAX_SPEED = 3000;
+
 const CORE_LENGTH = 1.1;
 const CORE_RADIUS = 0.035;
 const GLOW_LENGTH = 1.4;
@@ -93,6 +95,7 @@ interface Projectile {
   direction: THREE.Vector3;
   distanceTraveled: number;
   targetDistance: number;
+  speed: number;
   age: number;
   onArrive: (() => void) | null;
 }
@@ -138,8 +141,11 @@ export function spawnProjectile(
   origin: THREE.Vector3,
   direction: THREE.Vector3,
   targetDistance: number,
-  onArrive: (() => void) | null
+  onArrive: (() => void) | null,
+  speed: number = PROJECTILE_SPEED
 ) {
+  // Hitscan weapons still get a (very fast) tracer so the shot is visible.
+  speed = Math.min(speed, TRACER_MAX_SPEED);
   const group = new THREE.Group();
   const core = new THREE.Mesh(coreGeometry, coreMaterial);
   const glow = new THREE.Mesh(glowGeometry, glowMaterial);
@@ -161,6 +167,7 @@ export function spawnProjectile(
     direction: direction.clone(),
     distanceTraveled: 0,
     targetDistance,
+    speed,
     age: 0,
     onArrive,
   });
@@ -172,7 +179,7 @@ export function updateProjectiles(delta: number) {
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const p = projectiles[i];
     p.age += delta;
-    p.distanceTraveled += PROJECTILE_SPEED * delta;
+    p.distanceTraveled += p.speed * delta;
 
     if (p.distanceTraveled >= p.targetDistance) {
       p.onArrive?.();

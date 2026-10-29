@@ -18,3 +18,4 @@ export const BOLT_SPEED = 130; // units/sec - the visible bolt and the server's 
 export const RESPAWN_DELAY_MS = 1500; // earliest a dead player may respawn
 export const HIT_RADIUS = PLAYER_RADIUS + 0.1; // forgiving: positions are ~50 ms stale
 export const HEAD_ABOVE_EYE = 0.3;
+export const HEAD_BELOW_EYE = 0.2; // the head spans from here below the eye up to HEAD_ABOVE_EYE

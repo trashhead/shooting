@@ -4,6 +4,7 @@ import './world/world';
 import { playerId, send } from './net/socket';
 import { updateRemotePlayers } from './net/remotePlayers';
 import { updateMovement } from './player/movement';
+import './player/loadout';
 import './player/life';
 import './player/bots';
 import { updateWeapon } from './player/weapon';

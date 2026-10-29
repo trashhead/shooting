@@ -4,6 +4,7 @@ import { getWeaponState } from '../player/weapon';
 import { horizontalSpeed, controls } from '../player/movement';
 import { isAlive } from '../player/status';
 import { MAX_HEALTH, MOVE_SPEED } from '../../shared/constants';
+import { WEAPONS } from '../../shared/weapons';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -16,6 +17,7 @@ const healthValue = $('healthValue');
 const healthFill = $('healthFill');
 const healthGhost = $('healthGhost');
 const chargeFill = $('chargeFill');
+const weaponName = $('weaponName');
 const damage = $('damage');
 const scoreboard = $('scoreboard');
 const scoreList = $('scoreList');
@@ -58,10 +60,11 @@ export function flashDamage() {
 }
 
 // ---- hit marker: an X on the crosshair when one of our shots lands ----
-export function hitMarker(kill: boolean) {
+export function hitMarker(kill: boolean, head: boolean) {
   hitmarkerEl.classList.remove('show');
   void hitmarkerEl.offsetWidth; // restart the animation if it is already playing
   hitmarkerEl.classList.toggle('kill', kill);
+  hitmarkerEl.classList.toggle('head', head);
   hitmarkerEl.classList.add('show');
 }
 
@@ -84,7 +87,7 @@ export function hideDeath() {
 const KILLFEED_MAX = 5;
 const KILLFEED_LIFETIME_MS = 6000;
 
-export function addKillFeedEntry(killer: number, victim: number) {
+export function addKillFeedEntry(killer: number, victim: number, head: boolean) {
   const entry = document.createElement('div');
   entry.className = 'entry';
   if (killer === playerId || victim === playerId) entry.classList.add('mine');
@@ -92,6 +95,12 @@ export function addKillFeedEntry(killer: number, victim: number) {
   arrow.className = 'arrow';
   arrow.textContent = '›';
   entry.append(playerTag(killer), arrow, playerTag(victim));
+  if (head) {
+    const skull = document.createElement('span');
+    skull.className = 'headshot';
+    skull.textContent = 'HEADSHOT';
+    entry.append(skull);
+  }
 
   killfeed.prepend(entry);
   while (killfeed.children.length > KILLFEED_MAX) killfeed.lastElementChild?.remove();
@@ -158,12 +167,13 @@ let sinceScoreboard = 0;
 
 export function updateHud(delta: number) {
   // Crosshair opens up with movement and recoil, then eases back.
-  const { recoil, cooldown } = getWeaponState();
+  const { recoil, cooldown, weaponId, zoom } = getWeaponState();
+  weaponName.textContent = WEAPONS[weaponId].name;
   const speedFrac = Math.min(1, horizontalSpeed() / MOVE_SPEED);
   const targetGap = 6 + speedFrac * 8 + recoil * 10;
   gap += (targetGap - gap) * (1 - Math.exp(-delta * 20));
   crosshair.style.setProperty('--gap', `${gap.toFixed(2)}px`);
-  crosshair.style.opacity = !isAlive() ? '0' : controls.isLocked ? '1' : '0.5';
+  crosshair.style.opacity = !isAlive() || zoom > 0.5 ? '0' : controls.isLocked ? '1' : '0.5';
 
   // Weapon readiness: dips on each shot and refills over the fire interval.
   chargeFill.style.width = `${((1 - cooldown) * 100).toFixed(0)}%`;

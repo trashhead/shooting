@@ -3,6 +3,7 @@ import index from '../client/index.html';
 import * as bots from './bot';
 import * as game from './game';
 import { decode, encode, type ClientMessage } from '../shared/protocol';
+import { isWeaponId } from '../shared/weapons';
 
 const PORT = Number(process.env.PORT ?? 3000);
 const PUBLIC_DIR = resolve(import.meta.dir, '..', 'public');
@@ -75,11 +76,12 @@ const server = Bun.serve<Client>({
           if (!game.isAlive(id)) return;
 
           // publish() on a socket skips that socket, so the shooter doesn't get it back.
-          ws.publish(ROOM, encode({ t: 'shot', id, origin, dir, dist: Math.min(Math.max(dist, 0), 500) }));
+          const weapon = isWeaponId(msg.weapon) ? msg.weapon : 'plasma';
+          ws.publish(ROOM, encode({ t: 'shot', id, origin, dir, dist: Math.min(Math.max(dist, 0), 500), weapon }));
 
           // Damage is not decided here: the bolt flies (see tick below) and
           // hurts whoever it reaches, when it reaches them.
-          game.fire(id, origin, dir);
+          game.fire(id, origin, dir, weapon);
           break;
         }
 
@@ -113,14 +115,14 @@ const tick = () => {
   // Bots only make sense with someone to play against.
   if (sockets.size === 0) bots.removeAllBots();
   bots.updateBots(dt, (id, origin, dir, dist) => {
-    server.publish(ROOM, encode({ t: 'shot', id, origin, dir, dist }));
+    server.publish(ROOM, encode({ t: 'shot', id, origin, dir, dist, weapon: 'plasma' }));
     game.fire(id, origin, dir);
   });
 
   for (const hit of game.step(dt)) {
-    sockets.get(hit.killerId)?.send(encode({ t: 'hitmarker', kill: hit.killed }));
+    sockets.get(hit.killerId)?.send(encode({ t: 'hitmarker', kill: hit.killed, head: hit.head }));
     sockets.get(hit.victimId)?.send(encode({ t: 'damaged', health: hit.health, by: hit.killerId }));
-    if (hit.killed) server.publish(ROOM, encode({ t: 'kill', killer: hit.killerId, victim: hit.victimId }));
+    if (hit.killed) server.publish(ROOM, encode({ t: 'kill', killer: hit.killerId, victim: hit.victimId, head: hit.head }));
   }
 };
 

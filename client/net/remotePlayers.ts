@@ -5,6 +5,7 @@ import { spawnProjectile } from '../fx/projectile';
 import { playShootSound } from '../fx/audio';
 import { EYE_HEIGHT, PLAYER_RADIUS } from '../../shared/constants';
 import type { PlayerState } from '../../shared/protocol';
+import { WEAPONS } from '../../shared/weapons';
 import { loadSoldier, SoldierAvatar } from './soldier';
 
 // Other players, drawn as an animated soldier (soldier.ts). Until that has
@@ -109,7 +110,7 @@ onMessage((msg) => {
   if (msg.t === 'shot') {
     shotOrigin.set(...msg.origin);
     shotDirection.set(...msg.dir).normalize();
-    spawnProjectile(shotOrigin, shotDirection, msg.dist, null);
+    spawnProjectile(shotOrigin, shotDirection, msg.dist, null, WEAPONS[msg.weapon]?.boltSpeed);
     const volume = 1 - shotOrigin.distanceTo(camera.position) / HEARD_RANGE;
     if (volume > 0.02) playShootSound(volume);
     return;

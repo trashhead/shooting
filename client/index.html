@@ -22,8 +22,11 @@
       <div id="death">
         <h2>YOU DIED</h2>
         <div class="by">Killed by <span id="deathKiller"></span></div>
+        <div id="deathWeapons"></div>
         <div class="respawn">Click to respawn</div>
       </div>
+
+      <div id="scope"><i class="h"></i><i class="v"></i></div>
 
       <div id="status" class="panel">
         <span id="statusDot" class="dot-status"></span>
@@ -59,12 +62,16 @@
     <div id="overlay">
       <div class="card">
         <h1>SHOOTING</h1>
+        <div class="label">Choose weapon</div>
+        <div id="weaponPicker"></div>
         <p class="cta">Click to play</p>
         <div class="keys">
           <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</span>
           <span><kbd>Space</kbd> jump</span>
           <span><kbd>Shift</kbd> sneak</span>
           <span><kbd>Mouse</kbd> look &amp; shoot</span>
+          <span><kbd>Mouse 2</kbd> zoom (sniper)</span>
+          <span><kbd>1</kbd><kbd>2</kbd> pick weapon</span>
           <span><kbd>Tab</kbd> players</span>
           <span><kbd>B</kbd> add bot</span>
           <span><kbd>Esc</kbd> release mouse</span>

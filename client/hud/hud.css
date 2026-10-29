@@ -199,6 +199,8 @@ kbd {
 #hitmarker i:nth-child(3) { transform: rotate(225deg) translateX(13px); }
 #hitmarker i:nth-child(4) { transform: rotate(315deg) translateX(13px); }
 #hitmarker.kill i { background: var(--bad); width: 13px; left: -6.5px; }
+#hitmarker.head i { background: #ffd23f; width: 14px; left: -7px; height: 3px; }
+#hitmarker.head.kill i { background: var(--bad); }
 #hitmarker.show { animation: hitmarker 0.25s ease-out; }
 @keyframes hitmarker { 0% { opacity: 1; transform: scale(0.8); } 100% { opacity: 0; transform: scale(1.25); } }
 
@@ -220,6 +222,7 @@ kbd {
 }
 #killfeed .entry.mine { border-color: var(--accent); box-shadow: 0 0 14px var(--accent-soft); }
 #killfeed .entry.fade { opacity: 0; }
+#killfeed .headshot { color: #ffd23f; font-size: 10px; letter-spacing: 0.16em; }
 #killfeed .arrow { color: var(--bad); font-size: 18px; line-height: 1; }
 @keyframes slide-in { from { opacity: 0; transform: translateX(20px); } }
 
@@ -249,6 +252,46 @@ kbd {
 #death .respawn { margin-top: 18px; font-size: 15px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); opacity: 0; }
 #death.ready .respawn { opacity: 1; animation: pulse 1.4s ease-in-out infinite; }
 @keyframes fade-in { from { opacity: 0; } }
+
+/* ---- weapon picker (start screen) ---- */
+#weaponPicker { display: flex; gap: 14px; justify-content: center; margin-bottom: 26px; }
+.pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 170px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  color: var(--text);
+  font: 500 13px var(--font);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.locked .pick { opacity: 0.4; cursor: default; }
+.locked .pick:hover { transform: none; }
+.pick:hover { transform: translateY(-2px); }
+.pick.selected { border-color: var(--accent); box-shadow: 0 0 18px var(--accent-soft); }
+.pick-name { font: 800 18px var(--font); letter-spacing: 0.1em; text-transform: uppercase; }
+.pick.selected .pick-name { color: var(--accent); }
+.pick-stats { color: var(--muted); font-size: 12px; }
+
+#deathWeapons { display: flex; gap: 22px; margin-top: 14px; font-size: 14px; color: var(--muted); letter-spacing: 0.08em; }
+#deathWeapons .selected { color: var(--accent); font-weight: 800; }
+
+/* ---- sniper scope ---- */
+#scope {
+  position: absolute;
+  inset: 0;
+  display: none;
+  background: radial-gradient(circle at center, transparent 0, transparent 30vmin, #000 30.4vmin);
+}
+#scope.show { display: block; }
+#scope i { position: absolute; background: rgba(0, 0, 0, 0.85); }
+#scope .h { left: calc(50% - 30vmin); width: 60vmin; top: calc(50% - 0.5px); height: 1px; }
+#scope .v { top: calc(50% - 30vmin); height: 60vmin; left: calc(50% - 0.5px); width: 1px; }
 
 /* ---- scoreboard columns ---- */
 #scoreList .tag { font-weight: 600; }

@@ -1,5 +1,6 @@
-import { BOLT_SPEED, EYE_HEIGHT, HEAD_ABOVE_EYE, HIT_RADIUS, MAX_HEALTH, RESPAWN_DELAY_MS, SHOT_DAMAGE, SHOT_RANGE } from '../shared/constants';
+import { EYE_HEIGHT, HEAD_ABOVE_EYE, HEAD_BELOW_EYE, HIT_RADIUS, MAX_HEALTH, RESPAWN_DELAY_MS, SHOT_RANGE } from '../shared/constants';
 import type { PlayerState, Spawn, Vec3 } from '../shared/protocol';
+import { WEAPONS, type WeaponId } from '../shared/weapons';
 import { distanceToWorld, rayCylinder } from './combat';
 import { pickSpawn } from './spawn';
 
@@ -38,12 +39,15 @@ type Bolt = {
   dir: Vec3;
   travelled: number;
   maxDist: number; // how far it can fly before a box/the floor/max range stops it
+  damage: number;
+  headDamage: number;
+  speed: number;
 };
 const bolts: Bolt[] = [];
 
 const MUZZLE_SLACK = 4; // how far the claimed muzzle may be from the shooter's known position
 
-export function fire(id: number, origin: Vec3, dir: Vec3) {
+export function fire(id: number, origin: Vec3, dir: Vec3, weapon: WeaponId = 'plasma') {
   const shooter = players.get(id);
   if (!shooter?.alive) return;
 
@@ -57,10 +61,20 @@ export function fire(id: number, origin: Vec3, dir: Vec3) {
   const near = Math.hypot(origin[0] - eye[0], origin[1] - eye[1], origin[2] - eye[2]) < MUZZLE_SLACK;
   const o = near ? origin : eye;
 
-  bolts.push({ owner: id, pos: [...o], dir: d, travelled: 0, maxDist: distanceToWorld(o, d, SHOT_RANGE) });
+  const spec = WEAPONS[weapon];
+  bolts.push({
+    owner: id,
+    pos: [...o],
+    dir: d,
+    travelled: 0,
+    maxDist: distanceToWorld(o, d, SHOT_RANGE),
+    damage: spec.damage,
+    headDamage: spec.headDamage,
+    speed: spec.boltSpeed,
+  });
 }
 
-export type HitResult = { killerId: number; victimId: number; health: number; killed: boolean };
+export type HitResult = { killerId: number; victimId: number; health: number; killed: boolean; head: boolean };
 
 // Advance every bolt by `dt` seconds. Each step is swept along the bolt's
 // path, so a fast bolt can't skip over a player between two ticks.
@@ -69,7 +83,7 @@ export function step(dt: number): HitResult[] {
 
   for (let i = bolts.length - 1; i >= 0; i--) {
     const b = bolts[i];
-    const stepLen = Math.min(BOLT_SPEED * dt, b.maxDist - b.travelled);
+    const stepLen = Math.min(b.speed * dt, b.maxDist - b.travelled);
 
     let hitT = Infinity;
     let victim: Player | null = null;
@@ -83,7 +97,9 @@ export function step(dt: number): HitResult[] {
     }
 
     if (victim) {
-      results.push(applyDamage(b.owner, victim));
+      const hitY = b.pos[1] + b.dir[1] * hitT;
+      const head = hitY >= victim.y - HEAD_BELOW_EYE;
+      results.push(applyDamage(b.owner, victim, head ? b.headDamage : b.damage, head));
       bolts.splice(i, 1);
       continue;
     }
@@ -95,8 +111,8 @@ export function step(dt: number): HitResult[] {
   return results;
 }
 
-function applyDamage(killerId: number, victim: Player): HitResult {
-  victim.health = Math.max(0, victim.health - SHOT_DAMAGE);
+function applyDamage(killerId: number, victim: Player, damage: number, head: boolean): HitResult {
+  victim.health = Math.max(0, victim.health - damage);
   const killed = victim.health === 0;
   if (killed) {
     victim.alive = false;
@@ -105,7 +121,7 @@ function applyDamage(killerId: number, victim: Player): HitResult {
     const killer = players.get(killerId); // may have left while the bolt was in the air
     if (killer) killer.kills++;
   }
-  return { killerId, victimId: victim.id, health: victim.health, killed };
+  return { killerId, victimId: victim.id, health: victim.health, killed, head };
 }
 
 export function respawn(id: number): { spawn: Spawn; health: number } | null {

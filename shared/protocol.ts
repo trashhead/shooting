@@ -1,6 +1,8 @@
 // Wire protocol: JSON messages tagged by `t`. Add message types here and
 // both sides get them type-checked.
 
+import type { WeaponId } from './weapons';
+
 export type Vec3 = [number, number, number];
 
 // Where a player (re)appears: eye position and yaw.
@@ -26,7 +28,7 @@ export type ClientMessage =
   // A fired bolt: where it leaves the muzzle, its unit direction, and how far
   // the shooter saw it fly. The server flies its own copy at BOLT_SPEED and
   // applies damage only when that reaches someone.
-  | { t: 'shoot'; origin: Vec3; dir: Vec3; dist: number }
+  | { t: 'shoot'; origin: Vec3; dir: Vec3; dist: number; weapon: WeaponId }
   | { t: 'respawn' }
   // Ask the server to add a computer-controlled player (it caps how many).
   | { t: 'addBot' };
@@ -37,13 +39,13 @@ export type ServerMessage =
   // Everyone currently in the game (including the receiver - clients skip themselves).
   | { t: 'snapshot'; players: PlayerState[] }
   // Someone else's shot (the shooter never gets its own back).
-  | { t: 'shot'; id: number; origin: Vec3; dir: Vec3; dist: number }
+  | { t: 'shot'; id: number; origin: Vec3; dir: Vec3; dist: number; weapon: WeaponId }
   // You were hit.
   | { t: 'damaged'; health: number; by: number }
   // You hit someone (`kill` if it finished them).
-  | { t: 'hitmarker'; kill: boolean }
+  | { t: 'hitmarker'; kill: boolean; head: boolean }
   // Broadcast to everyone when a player dies.
-  | { t: 'kill'; killer: number; victim: number }
+  | { t: 'kill'; killer: number; victim: number; head: boolean }
   // You are alive again.
   | { t: 'respawn'; spawn: Spawn; health: number };
 
